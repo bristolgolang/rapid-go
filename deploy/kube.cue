@@ -1,24 +1,38 @@
+import "strconv"
+
+#name: "rapid-go"
+
+#port: "32400"
+
+#labels: {
+	app: "rapid-go"
+}
+
 deployment: {
 	apiVersion: "apps/v1"
 	kind:       "Deployment"
 	metadata: {
 		name: "api"
-		labels: app: "rapid-go"
+		labels: #labels
 	}
 	spec: {
 		replicas: 1
-		selector: matchLabels: app: "rapid-go"
+		selector: matchLabels: #labels
 		template: {
-			metadata: labels: app: "rapid-go"
+			metadata: labels: #labels
 			spec: containers: [{
-				name:  "rapid-go"
+				name:  #name
 				image: "rapid-go"
 				imagePullPolicy: "Never"
+				env: [{
+					name:  "PORT"
+					value: #port
+				}]
 				ports: [{
-					containerPort: 32400
+					containerPort: strconv.Atoi(#port)
 				}]
 				readinessProbe: httpGet: {
-					port: 32400
+					port: strconv.Atoi(#port)
 					path: "/ready"
 				}
 			}]
@@ -30,11 +44,11 @@ service: {
 	kind:       "Service"
 	metadata: name: "api"
 	spec: {
-		selector: app: "rapid-go"
+		selector: #labels
 		ports: [{
 			protocol:   "TCP"
-			port:       32400
-			targetPort: 32400
+			port:       strconv.Atoi(#port)
+			targetPort: strconv.Atoi(#port)
 		}]
 	}
 }
