@@ -20,6 +20,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -36,17 +37,26 @@ var rootCmd = &cobra.Command{
 	// has an action associated with it:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		router := http.NewServeMux()
-		router.HandleFunc("GET /greet/{name}", helloUser)
+		router.Handle("GET /greet/{name}", loggingMiddleware(http.HandlerFunc(helloUser)))
 		router.HandleFunc("GET /ready", ready)
 
 		server := &http.Server{
-			Addr:    ":32400",
+			Addr:    ":" + viper.GetString("port"),
 			Handler: router,
 		}
 
-		slog.Info("starting server", slog.String("port", "32400"))
+		slog.Info("starting server", slog.String("port", viper.GetString("port")))
 		return server.ListenAndServe()
 	},
+}
+
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("recieved request", slog.String("path", r.URL.Path), slog.String("method", r.Method), slog.String("remote_addr", r.RemoteAddr))
+		startTime := time.Now()
+		next.ServeHTTP(w, r)
+		slog.Info("request completed", slog.String("path", r.URL.Path), slog.String("method", r.Method), slog.String("remote_addr", r.RemoteAddr), slog.Duration("duration", time.Since(startTime)))
+	})
 }
 
 func helloUser(w http.ResponseWriter, r *http.Request) {
@@ -77,6 +87,8 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+	viper.SetDefault("port", "32400")
 }
 
 // initConfig reads in config file and ENV variables if set.
