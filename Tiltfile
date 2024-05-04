@@ -8,3 +8,4 @@ docker_build(
 )
 
 k8s_yaml([deployment, service])
+k8s_resource(workload='api', port_forwards=32400)
