@@ -35,15 +35,24 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	RunE: func(cmd *cobra.Command, args []string) error {
-		http.HandleFunc("/", helloWorld)
-		http.HandleFunc("/ready", ready)
+		router := http.NewServeMux()
+		router.HandleFunc("GET /greet/{name}", helloUser)
+		router.HandleFunc("GET /ready", ready)
+
+		server := &http.Server{
+			Addr:    ":32400",
+			Handler: router,
+		}
+
 		slog.Info("starting server", slog.String("port", "32400"))
-		return http.ListenAndServe(":32400", nil)
+		return server.ListenAndServe()
 	},
 }
 
-func helloWorld(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Hello, world!"))
+func helloUser(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	msg := fmt.Sprintf("Hello, %s!", name)
+	w.Write([]byte(msg))
 }
 
 func ready(w http.ResponseWriter, r *http.Request) {

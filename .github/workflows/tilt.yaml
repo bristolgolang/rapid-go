@@ -1,0 +1,26 @@
+name: tilt
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Create k8s Kind Cluster
+      uses: helm/kind-action@v1
+
+    - name: Install Tilt
+      run: curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+
+    - uses: cue-lang/setup-cue@v1.0.0
+
+    - run: tilt ci
+
+    - run: tilt down
