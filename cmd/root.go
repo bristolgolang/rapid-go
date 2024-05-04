@@ -36,8 +36,8 @@ var rootCmd = &cobra.Command{
 	// has an action associated with it:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		router := http.NewServeMux()
-		router.HandleFunc("/", helloWorld)
-		router.HandleFunc("/ready", ready)
+		router.HandleFunc("GET /greet/{name}", helloUser)
+		router.HandleFunc("GET /ready", ready)
 
 		server := &http.Server{
 			Addr:    ":32400",
@@ -49,8 +49,10 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func helloWorld(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Hello, world!"))
+func helloUser(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	msg := fmt.Sprintf("Hello, %s!", name)
+	w.Write([]byte(msg))
 }
 
 func ready(w http.ResponseWriter, r *http.Request) {
