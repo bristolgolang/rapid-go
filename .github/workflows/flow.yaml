@@ -1,0 +1,50 @@
+name: Workshop Flow
+
+on:
+    workflow_dispatch:
+
+jobs:
+    # A job to help check the workshop flow
+    diff-train:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+
+            - run: git diff --color origin/step1 origin/step2
+            - run: git diff --color origin/step2 origin/step3
+            - run: git diff --color origin/step3 origin/step4
+
+    sanity-check:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+
+            - name: Create k8s Kind Cluster
+              uses: helm/kind-action@v1
+
+            - name: Install Tilt
+              run: curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+
+            - uses: cue-lang/setup-cue@v1.0.0
+
+            - run: git checkout origin/step1
+
+            - run: tilt ci
+
+            - run: git checkout origin/step2
+
+            - run: tilt ci
+
+            - run: git checkout origin/step3
+
+            - run: tilt ci
+
+            - run: git checkout origin/step4
+
+            - run: tilt ci
+
+            - run: tilt down
