@@ -42,6 +42,6 @@ Expands the project to use go 1.22's new routing to provide a better structure g
 
 Moves the `/` endpoint to `/greet/{name}` and greets the user with a message.
 
-### Step 5
+### Step end
 
-Adds CI to ensure the Tiltfile workflow is working as expected.
+A kitchen sink example, so to speak. We use a database, a migrations file, and so much more.
