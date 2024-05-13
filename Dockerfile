@@ -16,7 +16,7 @@ ENV GOCACHE=/root/.cache/go-build
 RUN --mount=type=cache,target="/root/.cache/go-build" CGO_ENABLED=0 GOOS=linux go build -o rapid-go .
 
 # Stage 2: Final stage
-FROM alpine:edge
+FROM alpine:edge as server
 
 # Set the working directory
 WORKDIR /app

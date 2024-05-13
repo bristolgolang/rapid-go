@@ -16,14 +16,16 @@ limitations under the License.
 package cmd
 
 import (
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/bristolgolang/rapid-go/internal/server"
+	_ "github.com/lib/pq"
 	"github.com/spf13/cobra"
-
 	"github.com/spf13/viper"
 )
 
@@ -36,8 +38,25 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	RunE: func(cmd *cobra.Command, args []string) error {
+		connStr := viper.GetString("postgres_connection_string")
+		slog.Info("connecting to database", slog.String("connection_string", connStr))
+		db, err := sql.Open("postgres", connStr)
+		if err != nil {
+			slog.Error("failed to connect to database", slog.String("error", err.Error()))
+			return err
+		}
+		defer db.Close()
+
+		err = db.PingContext(cmd.Context())
+		if err != nil {
+			slog.Error("failed to ping database", slog.String("error", err.Error()))
+			return err
+		}
+
+		s := server.NewServer(db)
+
 		router := http.NewServeMux()
-		router.Handle("GET /greet/{name}", loggingMiddleware(http.HandlerFunc(helloUser)))
+		router.Handle("GET /greet/{name}", loggingMiddleware(http.HandlerFunc(s.Greet)))
 		router.HandleFunc("GET /ready", ready)
 
 		server := &http.Server{
@@ -57,12 +76,6 @@ func loggingMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 		slog.Info("request completed", slog.String("path", r.URL.Path), slog.String("method", r.Method), slog.String("remote_addr", r.RemoteAddr), slog.Duration("duration", time.Since(startTime)))
 	})
-}
-
-func helloUser(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
-	msg := fmt.Sprintf("Hello, %s!", name)
-	w.Write([]byte(msg))
 }
 
 func ready(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +101,10 @@ func init() {
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
+	viper.SetEnvPrefix("rapid_go")
 	viper.SetDefault("port", "32400")
+	viper.BindEnv("port")
+	viper.BindEnv("postgres_connection_string")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -107,7 +123,8 @@ func initConfig() {
 		viper.SetConfigName(".rapid-go")
 	}
 
-	viper.AutomaticEnv() // read in environment variables that match
+	viper.SetEnvPrefix("rapid_go") // set environment variable prefix
+	viper.AutomaticEnv()           // read in environment variables that match
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {

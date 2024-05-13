@@ -25,8 +25,11 @@ deployment: {
 				image: "rapid-go"
 				imagePullPolicy: "Never"
 				env: [{
-					name:  "PORT"
+					name:  "RAPID_GO_PORT"
 					value: #port
+				}, {
+					name:  "RAPID_GO_POSTGRES_CONNECTION_STRING"
+					value: "host=postgresql port=5432 user=postgres password=password dbname=postgres sslmode=disable"
 				}]
 				ports: [{
 					containerPort: strconv.Atoi(#port)
@@ -50,5 +53,45 @@ service: {
 			port:       strconv.Atoi(#port)
 			targetPort: strconv.Atoi(#port)
 		}]
+	}
+}
+
+#migration_labels: {
+	app: "rapid-go-migration"
+}
+
+#current_directory: string @tag(dir,var=cwd)
+
+migration: {
+	apiVersion: "batch/v1"
+	kind:       "Job"
+	metadata: {
+		name: "migration"
+		labels: #migration_labels
+	}
+	spec: {
+		template: {
+			metadata: labels: #migration_labels
+			spec: {
+				containers: [{
+					name:  "migrations"
+					image: "migrate/migrate"
+					imagePullPolicy: "IfNotPresent"
+					args: ["-path=/migrations/", "-database", "postgres://postgres:password@postgresql:5432/postgres?sslmode=disable", "up"]
+					volumeMounts: [{
+						name: "migrations"
+						mountPath: "/migrations"
+					}]
+				}]
+				restartPolicy: "Never"
+				volumes: [{
+					name: "migrations"
+					hostPath: {
+						path: #current_directory + "/migrations"
+						type: "Directory"
+					}
+				}]
+			}
+		}
 	}
 }

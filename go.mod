@@ -3,6 +3,7 @@ module github.com/bristolgolang/rapid-go
 go 1.22
 
 require (
+	github.com/lib/pq v1.10.9
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2
 )
